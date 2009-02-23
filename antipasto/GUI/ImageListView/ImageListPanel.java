@@ -6,6 +6,7 @@ import java.awt.event.MouseListener;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 import antipasto.GUI.GadgetListView.GadgetPanel;
 import antipasto.GUI.GadgetListView.GadgetPanelEvents.ActiveGadgetObject;
@@ -17,7 +18,7 @@ import processing.app.SerialException;
 import processing.app.TouchShieldImageTransfer;
 
 
-public class ImageListPanel extends JFrame implements IActiveGadgetChangedEventListener {
+public class ImageListPanel extends JPanel implements IActiveGadgetChangedEventListener {
 	private ImageListView list;
 	private TouchShieldImageTransfer imageTransfer;
 	private JButton transferButton;
@@ -25,11 +26,11 @@ public class ImageListPanel extends JFrame implements IActiveGadgetChangedEventL
 	public ImageListPanel(GadgetPanel panel, TouchShieldImageTransfer imageTransfer){
 		this.imageTransfer = imageTransfer;
 		list = new ImageListView(panel);
-		this.getContentPane().setLayout(new BorderLayout());
+		this.setLayout(new BorderLayout());
 		this.panel = panel;
-		this.getContentPane().add(list, BorderLayout.CENTER);
+		this.add(list, BorderLayout.CENTER);
 		this.createTransferButton();
-		this.getContentPane().add(transferButton, BorderLayout.SOUTH);
+		this.add(transferButton, BorderLayout.SOUTH);
 		panel.addActiveGadgetChangedEventListener(this);
 		this.doVisabilityCheck();
 	}

@@ -773,6 +773,7 @@ public class Editor extends JFrame
 
       menu.addSeparator();
 
+
       item = newJMenuItem("Quit", 'Q');
       item.addActionListener(new ActionListener() {
           public void actionPerformed(ActionEvent e) {
