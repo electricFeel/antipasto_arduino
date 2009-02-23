@@ -81,6 +81,9 @@ public class Editor extends JFrame
   static public final KeyStroke WINDOW_CLOSE_KEYSTROKE =
     KeyStroke.getKeyStroke('W', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask());
 
+  static final String CODEEDITOR = "CODE EDITORY PANEL";
+  static final String FILELIST = "MODULE FILE LIST";
+  
   static final int HANDLE_NEW  = 1;
   static final int HANDLE_OPEN = 2;
   static final int HANDLE_QUIT = 3;
@@ -127,6 +130,7 @@ public class Editor extends JFrame
   JMenuItem exportAppItem;
   JMenuItem saveMenuItem;
   JMenuItem saveAsMenuItem;
+  JPanel centerPanel;
   
   JMenuItem burnBootloader8Item = null;
   JMenuItem burnBootloader8ParallelItem = null;
@@ -303,9 +307,60 @@ public class Editor extends JFrame
     rightWing.setBackground(new Color(0x54, 0x91, 0x9e));
     rightWing.setSize(15, 0);
     rightWing.setPreferredSize(new Dimension(10, 0));
+
+    centerPanel = new JPanel();
+    int editorHeight = editorSection.getHeight();
+    int editorWidth = editorSection.getWidth() - rightWing.getWidth() * 2;
+    
+    Dimension dim = textarea.getSize();
+    
+    System.out.println("The dimensions...." + dim);
+    
+    centerPanel.setSize(dim);
+    textarea.setMinimumSize(new Dimension(600,600));
+
+    textarea.setPreferredSize(new Dimension(600, 600));
+    
+    centerPanel.setMinimumSize(new Dimension(600,600));
+    
+    centerPanel.setLayout(new CardLayout());
+    
+    //centerPanel.setPreferredSize(textarea.getSize());
+    ComponentListener compListener = new ComponentListener(){
+		public void componentHidden(ComponentEvent arg0) {
+			// TODO Auto-generated method stub
+			
+		}
+		public void componentMoved(ComponentEvent arg0) {
+			textarea.setLocation(0, 0);
+			Dimension dim = new Dimension(arg0.getComponent().getWidth(), arg0.getComponent().getHeight() - 20);
+			textarea.setPreferredSize(dim);
+			textarea.setSize(dim);
+			textarea.setMinimumSize(dim);			
+		}
+		public void componentResized(ComponentEvent arg0) {
+			textarea.setLocation(0, 0);
+			Dimension dim = new Dimension(arg0.getComponent().getWidth(), arg0.getComponent().getHeight() - 20);
+			textarea.setPreferredSize(dim);
+			textarea.setSize(dim);
+			textarea.setMinimumSize(dim);
+		}
+		public void componentShown(ComponentEvent arg0) {
+			textarea.setLocation(0, 0);
+			Dimension dim = new Dimension(arg0.getComponent().getWidth(), arg0.getComponent().getHeight() - 20);
+			textarea.setPreferredSize(dim);
+			textarea.setSize(dim);
+			textarea.setMinimumSize(dim);
+		}
+    	
+    };
+    centerPanel.addComponentListener(compListener);
+    this.addComponentListener(compListener);
+    centerPanel.setVisible(true);
+    centerPanel.add(textarea, CODEEDITOR);
     
     editorSection.add(leftWing, BorderLayout.WEST);
-    editorSection.add(textarea, BorderLayout.CENTER);
+    editorSection.add(centerPanel, BorderLayout.CENTER);
     editorSection.add(rightWing, BorderLayout.EAST);
     
     upper.add(editorSection);
@@ -346,12 +401,10 @@ public class Editor extends JFrame
     pain.add(box);
 
     pain.setTransferHandler(new TransferHandler() {
-
         public boolean canImport(JComponent dest, DataFlavor[] flavors) {
           // claim that we can import everything
           return true;
         }
-
         public boolean importData(JComponent src, Transferable transferable) {
           DataFlavor[] flavors = transferable.getTransferDataFlavors();
 
