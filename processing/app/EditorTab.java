@@ -30,14 +30,17 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 	
 	Font font;
 	
+	Editor editor;
+	
 	Object obj;
 	
 	int updates = 0;
 	
-	public EditorTab(Color color, String title, Object object){
+	public EditorTab(Color color, String title, Object valueHolder, Editor editor){
 		//We need to create a rounded
 		this.txt = title;
 		this.color = color;
+		this.editor = editor;
 		
 		String family = "Lucida Sans Typewriter";
         int style = Font.PLAIN;
@@ -47,7 +50,7 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 		
 		this.setVisible(true);
 		
-		obj = object;
+		obj = valueHolder;
 		if(obj instanceof SketchCode){
 			//SketchCode instance
 			SketchCode skc = (SketchCode)obj;
@@ -61,8 +64,8 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 	
 	 public void paint(Graphics g) {
 	        Graphics2D graphics2 = (Graphics2D) g;
-	        FontRenderContext renderContext =graphics2.getFontRenderContext();
-			FontMetrics metrics =g.getFontMetrics(font);
+	        FontRenderContext renderContext = graphics2.getFontRenderContext();
+			FontMetrics metrics = g.getFontMetrics(font);
 			
 			String printTxt = this.txt;
 			
@@ -121,7 +124,13 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 	}
 
 	public void mousePressed(MouseEvent arg0) {
-		
+		if(this.obj instanceof SketchCode){
+			//we load the sketch code and make the editor window visible
+			editor.setCode((SketchCode)obj);
+		}else if(this.obj instanceof File[]){
+			//we load the File[] and make the list view window visible
+			editor.setImageListVisable();
+		}
 	}
 
 	public void mouseReleased(MouseEvent arg0) {

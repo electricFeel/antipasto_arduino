@@ -18,6 +18,9 @@ public class ImageListView extends JList implements IActiveGadgetChangedEventLis
 	IModule activeModule;
 	GadgetPanel gadgetPanel;
 	public ImageListView(GadgetPanel panel){
+	}
+	
+	public void setGadgetPanel(GadgetPanel panel){
 		activeModule = panel.getActiveModule();
 		panel.addActiveGadgetChangedEventListener(this);
 		gadgetPanel = panel;

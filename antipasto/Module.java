@@ -51,6 +51,9 @@ public class Module implements IModule, ITemporary, IPackedFile {
 
     public File[] getData() {
     	File dataDirectory = new File(this.getTempDirectory() + File.separator + "data");
+    	if(!dataDirectory.exists()){
+    		dataDirectory.mkdir();
+    	}
         return dataDirectory.listFiles();
     }
 

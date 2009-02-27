@@ -50,6 +50,7 @@ import javax.swing.undo.*;
 import antipasto.*;
 import antipasto.GUI.GadgetListView.*;
 import antipasto.GUI.GadgetListView.GadgetPanelEvents.*;
+import antipasto.GUI.ImageListView.ImageListPanel;
 import antipasto.Interfaces.*;
 import antipasto.ModuleRules.IMessage;
 import antipasto.ModuleRules.IOkListener;
@@ -81,8 +82,8 @@ public class Editor extends JFrame
   static public final KeyStroke WINDOW_CLOSE_KEYSTROKE =
     KeyStroke.getKeyStroke('W', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask());
 
-  static final String CODEEDITOR = "CODE EDITORY PANEL";
-  static final String FILELIST = "MODULE FILE LIST";
+  static final String CODEEDITOR = "CODEPANEL";
+  static final String FILELIST = "FILELIST";
   
   static final int HANDLE_NEW  = 1;
   static final int HANDLE_OPEN = 2;
@@ -142,6 +143,8 @@ public class Editor extends JFrame
   JMenu serialMenu;
   JMenu serialRateMenu;
   JMenu mcuMenu;
+  
+  ImageListPanel imageListPanel;
   
   SerialMenuListener serialMenuListener;
 
@@ -308,56 +311,23 @@ public class Editor extends JFrame
     rightWing.setSize(15, 0);
     rightWing.setPreferredSize(new Dimension(10, 0));
 
+    imageListPanel = new ImageListPanel(this.gadgetPanel, new TouchShieldImageTransfer(this.serialPort));
+    
+    
     centerPanel = new JPanel();
-    int editorHeight = editorSection.getHeight();
-    int editorWidth = editorSection.getWidth() - rightWing.getWidth() * 2;
     
     Dimension dim = textarea.getSize();
     
     System.out.println("The dimensions...." + dim);
-    
-    centerPanel.setSize(dim);
-    textarea.setMinimumSize(new Dimension(600,600));
-
-    textarea.setPreferredSize(new Dimension(600, 600));
-    
-    centerPanel.setMinimumSize(new Dimension(600,600));
-    
+     
     centerPanel.setLayout(new CardLayout());
     
-    //centerPanel.setPreferredSize(textarea.getSize());
-    ComponentListener compListener = new ComponentListener(){
-		public void componentHidden(ComponentEvent arg0) {
-			// TODO Auto-generated method stub
-			
-		}
-		public void componentMoved(ComponentEvent arg0) {
-			textarea.setLocation(0, 0);
-			Dimension dim = new Dimension(arg0.getComponent().getWidth(), arg0.getComponent().getHeight() - 20);
-			textarea.setPreferredSize(dim);
-			textarea.setSize(dim);
-			textarea.setMinimumSize(dim);			
-		}
-		public void componentResized(ComponentEvent arg0) {
-			textarea.setLocation(0, 0);
-			Dimension dim = new Dimension(arg0.getComponent().getWidth(), arg0.getComponent().getHeight() - 20);
-			textarea.setPreferredSize(dim);
-			textarea.setSize(dim);
-			textarea.setMinimumSize(dim);
-		}
-		public void componentShown(ComponentEvent arg0) {
-			textarea.setLocation(0, 0);
-			Dimension dim = new Dimension(arg0.getComponent().getWidth(), arg0.getComponent().getHeight() - 20);
-			textarea.setPreferredSize(dim);
-			textarea.setSize(dim);
-			textarea.setMinimumSize(dim);
-		}
-    	
-    };
-    centerPanel.addComponentListener(compListener);
-    this.addComponentListener(compListener);
     centerPanel.setVisible(true);
     centerPanel.add(textarea, CODEEDITOR);
+    centerPanel.add(imageListPanel, FILELIST);
+    
+    CardLayout cl = (CardLayout) centerPanel.getLayout();
+    cl.show(centerPanel, CODEEDITOR);
     
     editorSection.add(leftWing, BorderLayout.WEST);
     editorSection.add(centerPanel, BorderLayout.CENTER);
@@ -392,7 +362,7 @@ public class Editor extends JFrame
       splitPane.setDividerSize(dividerSize);
     }
 
-    splitPane.setMinimumSize(new Dimension(600, 600));
+    splitPane.setMinimumSize(new Dimension(this.getWidth(), 300));
     box.add(splitPane);
 
     // hopefully these are no longer needed w/ swing
@@ -2736,7 +2706,7 @@ public class Editor extends JFrame
 	        this.handleSave(true);
 	        File sketchFile = obj.getSketch();
 	        File boardFile = obj.getBoards();
-	        this.handleOpen2(sketchFile.getPath());
+	        this.handleOpen(sketchFile.getPath());
 	        String board = gadgetPanel.getActiveModule().getTarget();
 	        this.curBoard = board;
 	        Preferences.set("board", board);
@@ -2747,6 +2717,8 @@ public class Editor extends JFrame
         }else if(gadgetPanel.getActiveGadget() == null){
         	this.setVisible(true);
         }
+        System.out.println("repainting header");
+        this.header.paint(getGraphics());
     }
 
     /*
@@ -2882,6 +2854,7 @@ public class Editor extends JFrame
     	for(int i = 0; i < gadget.getModules().length; i++){
     		this.importModule(gadget.getModules()[i]);
     	}
+    	imageListPanel.setGadgetPanel(this.gadgetPanel);
     }
     
     private void importModule(IModule module){
@@ -2894,6 +2867,14 @@ public class Editor extends JFrame
             File.separator + "cores" + File.separator + target;
     		module.copyCoreToDirectory(cpyDir);
     	}
+    }
+    
+    public void setImageListVisable(){
+    	this.imageListPanel.setGadgetPanel(this.gadgetPanel);
+    	this.imageListPanel.setVisible(true);
+    	//this.textarea.setVisible(true);
+    	CardLayout cl = ((CardLayout)this.centerPanel.getLayout());
+    	cl.show(centerPanel, FILELIST);
     }
 }
 

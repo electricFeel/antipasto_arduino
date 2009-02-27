@@ -202,6 +202,10 @@ public class EditorHeader extends JPanel {
     		this.remove((Component)tabs.get(i));
     	}
     	
+    	for(int i = 0; i < tabs.size(); i++){
+    		this.remove(((EditorTab)tabs.get(i)));
+    	}
+    	
     	tabs.clear();
     	
 	    for (int i = 0; i < sketch.codeCount; i++) {
@@ -211,14 +215,25 @@ public class EditorHeader extends JPanel {
 	      String codeName = (code.flavor == Sketch.PDE) ?
 	        code.name : code.file.getName();
 	      
-	      EditorTab editorTab = new EditorTab(Color.ORANGE, codeName, code);
+	      EditorTab editorTab = new EditorTab(Color.ORANGE, codeName, code, this.editor);
 	      editorTab.setPreferredSize(new Dimension(editorTab.WIDTH, this.getHeight() + 5));
 	      editorTab.setBackground(this.backgroundColor);
+	      editorTab.paint(getGraphics());
 	      
 	      tabs.add(editorTab);
 	      
 	      this.tabHeader.add(editorTab);
 	      this.setVisible(true);
+	    }
+	    if(editor.gadgetPanel != null && editor.gadgetPanel.getActiveModule() != null){
+		    if(editor.gadgetPanel.getActiveModule().getData() != null||editor.gadgetPanel.getActiveModule().getData().length > 0){
+		    	EditorTab editorTab = new EditorTab(Color.green, "Data", editor.gadgetPanel.getActiveModule().getData(),this.editor);
+		    	editorTab.setPreferredSize(new Dimension(editorTab.WIDTH, this.getHeight() + 5));
+		    	editorTab.setBackground(this.backgroundColor);
+		    	tabs.add(editorTab);
+		    	this.tabHeader.add(editorTab);
+		    	editorTab.paint(getGraphics());
+		    }
 	    }
 	    this.previousSketch = sketch.name;
     }
@@ -307,6 +322,7 @@ public class EditorHeader extends JPanel {
     item.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
           editor.sketch.newCode();
+          
         }
       });
     menu.add(item);

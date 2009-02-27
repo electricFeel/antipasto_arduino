@@ -25,14 +25,21 @@ public class ImageListPanel extends JPanel implements IActiveGadgetChangedEventL
 	private GadgetPanel panel;
 	public ImageListPanel(GadgetPanel panel, TouchShieldImageTransfer imageTransfer){
 		this.imageTransfer = imageTransfer;
-		list = new ImageListView(panel);
-		this.setLayout(new BorderLayout());
-		this.panel = panel;
-		this.add(list, BorderLayout.CENTER);
-		this.createTransferButton();
-		this.add(transferButton, BorderLayout.SOUTH);
-		panel.addActiveGadgetChangedEventListener(this);
-		this.doVisabilityCheck();
+		
+	}
+	
+	public void setGadgetPanel(GadgetPanel panel){
+		if(panel == null){
+			this.imageTransfer = imageTransfer;
+			list = new ImageListView(panel);
+			this.setLayout(new BorderLayout());
+			this.panel = panel;
+			this.add(list, BorderLayout.CENTER);
+			this.createTransferButton();
+			this.add(transferButton, BorderLayout.SOUTH);
+			panel.addActiveGadgetChangedEventListener(this);
+			this.doVisabilityCheck();
+		}
 	}
 	
 	private void createTransferButton(){
