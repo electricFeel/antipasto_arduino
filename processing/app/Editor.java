@@ -84,6 +84,7 @@ public class Editor extends JFrame
 
   static final String CODEEDITOR = "CODEPANEL";
   static final String FILELIST = "FILELIST";
+	static final String TEST = "TESTSTRING";
   
   static final int HANDLE_NEW  = 1;
   static final int HANDLE_OPEN = 2;
@@ -311,21 +312,24 @@ public class Editor extends JFrame
     rightWing.setSize(15, 0);
     rightWing.setPreferredSize(new Dimension(10, 0));
 
+	  String libraryDirectory = System.getProperty("user.dir") + File.separator + "hardware" + 
+	  File.separator + "OpenHardware" + File.separator + "Modules";
+	  gadgetPanel = new GadgetPanel("", this, libraryDirectory);
+	  gadgetPanel.addActiveGadgetChangedEventListener(this);
+  
+	  
     imageListPanel = new ImageListPanel(this.gadgetPanel, new TouchShieldImageTransfer(this.serialPort));
     
     
     centerPanel = new JPanel();
     
-    Dimension dim = textarea.getSize();
-    
-    System.out.println("The dimensions...." + dim);
-     
     centerPanel.setLayout(new CardLayout());
-    
+	imageListPanel.setVisible(true);
+	  
     centerPanel.setVisible(true);
     centerPanel.add(textarea, CODEEDITOR);
     centerPanel.add(imageListPanel, FILELIST);
-    
+	
     CardLayout cl = (CardLayout) centerPanel.getLayout();
     cl.show(centerPanel, CODEEDITOR);
     
@@ -334,11 +338,8 @@ public class Editor extends JFrame
     editorSection.add(rightWing, BorderLayout.EAST);
     
     upper.add(editorSection);
-    String libraryDirectory = System.getProperty("user.dir") + File.separator + "hardware" + 
-           File.separator + "OpenHardware" + File.separator + "Modules";
-    gadgetPanel = new GadgetPanel("", this, libraryDirectory);
-    gadgetPanel.addActiveGadgetChangedEventListener(this);
-
+    
+    
     leftWing.setVisible(true);
       //upper.add(gadgetPanel);
     splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
@@ -2870,11 +2871,20 @@ public class Editor extends JFrame
     }
     
     public void setImageListVisable(){
-    	this.imageListPanel.setGadgetPanel(this.gadgetPanel);
+		/*this.imageListPanel.setGadgetPanel(this.gadgetPanel);
     	this.imageListPanel.setVisible(true);
     	//this.textarea.setVisible(true);
+		System.out.println("Showing : " + FILELIST);
     	CardLayout cl = ((CardLayout)this.centerPanel.getLayout());
-    	cl.show(centerPanel, FILELIST);
+    	cl.show(this.centerPanel, FILELIST);
+		this.show();
+		*/
+		imageListPanel.setVisible(true);
+		this.textarea.setVisible(true);
+		System.out.println(this.gadgetPanel);
+		this.imageListPanel.setGadgetPanel(this.gadgetPanel);
+		CardLayout cl = ((CardLayout)this.centerPanel.getLayout());
+		cl.show(this.centerPanel, FILELIST);
     }
 }
 

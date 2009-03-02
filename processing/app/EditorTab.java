@@ -130,6 +130,10 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 		}else if(this.obj instanceof File[]){
 			//we load the File[] and make the list view window visible
 			editor.setImageListVisable();
+			System.out.println("this is a file list");
+		}else{
+			//omg what do we do!?
+			System.out.println("I don't know what this it");
 		}
 	}
 

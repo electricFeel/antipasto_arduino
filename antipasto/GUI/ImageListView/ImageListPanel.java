@@ -22,23 +22,27 @@ public class ImageListPanel extends JPanel implements IActiveGadgetChangedEventL
 	private ImageListView list;
 	private TouchShieldImageTransfer imageTransfer;
 	private JButton transferButton;
-	private GadgetPanel panel;
+	private GadgetPanel gadgetPanel;
 	public ImageListPanel(GadgetPanel panel, TouchShieldImageTransfer imageTransfer){
 		this.imageTransfer = imageTransfer;
-		
+		this.setVisible(true);
 	}
 	
 	public void setGadgetPanel(GadgetPanel panel){
-		if(panel == null){
-			this.imageTransfer = imageTransfer;
+		if(panel != null){
+			this.gadgetPanel = panel;
 			list = new ImageListView(panel);
 			this.setLayout(new BorderLayout());
-			this.panel = panel;
 			this.add(list, BorderLayout.CENTER);
 			this.createTransferButton();
 			this.add(transferButton, BorderLayout.SOUTH);
 			panel.addActiveGadgetChangedEventListener(this);
-			this.doVisabilityCheck();
+			list.setVisible(true);
+			System.out.println("Done loading");
+			this.transferButton.setVisible(true);
+			this.setVisible(true);
+		}else{
+			System.out.println("panel is null");
 		}
 	}
 	
@@ -71,38 +75,19 @@ public class ImageListPanel extends JPanel implements IActiveGadgetChangedEventL
 			}
 			
 		});
+		this.transferButton.setVisible(true);
 	}
 	
 	private void transfer(){
 		try {
 			this.imageTransfer.setSerial(new Serial(true));
-			this.imageTransfer.ModuleImageTransfer(panel.getActiveModule());
+			this.imageTransfer.ModuleImageTransfer(gadgetPanel.getActiveModule());
 		} catch (SerialException e) {
 			e.printStackTrace();
 		}
 	}
 
 	public void onActiveGadgetChanged(ActiveGadgetObject obj) {
-		this.doVisabilityCheck();
 	}
 	
-	private void doVisabilityCheck(){
-		IModule module = panel.getActiveModule();
-		boolean hasImage = false;
-		if(module != null){
-			for(int i = 0; i < panel.getActiveModule().getData().length; i++){
-				if(module.getData()[i].getName().endsWith(".bmp")){
-					hasImage = true;
-					break;
-				}
-			}
-		}else{
-			this.hide();
-		}
-		if(hasImage){
-			this.show();
-		}else{
-			this.hide();
-		}
 	}
-}
