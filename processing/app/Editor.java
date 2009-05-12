@@ -694,8 +694,14 @@ public class Editor extends JFrame
                 Base.selectFolder("Select new gadget location", dflt, dialog);
             try {
             	System.out.println("Creating the gadget!");
-				File newFile = fact.CreateGadgetFile(file.getName(), file.getPath().replace(file.getPath(), ""), new IModule[]{});
+            	String dir = file.getPath();
+            	if(file.getParentFile().isDirectory()){
+            		dir = file.getParent();
+            	}
+				File newFile = fact.CreateGadgetFile(file.getName(), dir, new IModule[]{});
 				editor.gadgetPanel.loadGadget(newFile);
+				editor.textarea.setVisible(false);
+				editor.header.tabHeader.setVisible(false);
 			} catch (IOException e1) {
 				
 			}
