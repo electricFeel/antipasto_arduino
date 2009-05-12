@@ -8,6 +8,7 @@ import javax.swing.ListModel;
 import javax.swing.event.EventListenerList;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
+import java.io.*;
 
 public class ImageListModel implements ListModel, IImageFileCollectionChangedListener{
 
@@ -17,9 +18,7 @@ public class ImageListModel implements ListModel, IImageFileCollectionChangedLis
 	public ImageListModel(File[] files){
 		fileCollection.addItemListener(this);
 		for(int i=0; i < files.length; i++){
-			if(files[i].getName().endsWith(".bmp")){
 				fileCollection.add(files[i]);
-			}
 		}
 		fileCollection.addItemListener(this);
 	}
@@ -42,6 +41,20 @@ public class ImageListModel implements ListModel, IImageFileCollectionChangedLis
 	
 	public void itemsChanged(){
 		this.onListDataChanged();
+	}
+	
+	public void remove(int index){
+		try{
+			File f = (File)fileCollection.get(index);
+			if(!f.delete()){
+				System.out.println("Can't delete the file, check permissions or delete manuallyL " + f.getPath());
+			}else{
+				fileCollection.removeFile(index);
+			}
+		}catch (Exception ex) {
+			System.out.println("error removing from fileCollection");
+			ex.printStackTrace();
+		}
 	}
 	
 	private void onListDataChanged(){

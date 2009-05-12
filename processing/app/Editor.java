@@ -84,7 +84,7 @@ public class Editor extends JFrame
 
   static final String CODEEDITOR = "CODEPANEL";
   static final String FILELIST = "FILELIST";
-	static final String TEST = "TESTSTRING";
+  static final String TEST = "TEST";
   
   static final int HANDLE_NEW  = 1;
   static final int HANDLE_OPEN = 2;
@@ -132,7 +132,8 @@ public class Editor extends JFrame
   JMenuItem exportAppItem;
   JMenuItem saveMenuItem;
   JMenuItem saveAsMenuItem;
-  JPanel centerPanel;
+  JMenuItem newGadgetMenuItem;
+  public JPanel centerPanel;
   
   JMenuItem burnBootloader8Item = null;
   JMenuItem burnBootloader8ParallelItem = null;
@@ -273,6 +274,7 @@ public class Editor extends JFrame
     leftExpandLabel = new JLabel("<");
     leftWing = new JPanel();
     leftWing.setBackground(new Color(0x54, 0x91, 0x9e));
+	leftWing.setOpaque(true);
     leftWing.setSize(15, 0);
     leftWing.setPreferredSize(new Dimension(10, 0));
     leftWing.setLayout(new BorderLayout());
@@ -309,27 +311,33 @@ public class Editor extends JFrame
     
     JPanel rightWing = new JPanel();
     rightWing.setBackground(new Color(0x54, 0x91, 0x9e));
+	rightWing.setOpaque(true);
     rightWing.setSize(15, 0);
     rightWing.setPreferredSize(new Dimension(10, 0));
 
-	  String libraryDirectory = System.getProperty("user.dir") + File.separator + "hardware" + 
-	  File.separator + "OpenHardware" + File.separator + "Modules";
-	  gadgetPanel = new GadgetPanel("", this, libraryDirectory);
-	  gadgetPanel.addActiveGadgetChangedEventListener(this);
-  
+   	imageListPanel = new ImageListPanel(this.gadgetPanel, new FlashTransfer());
+	
+   	this.getContentPane().validate();
 	  
-    imageListPanel = new ImageListPanel(this.gadgetPanel, new TouchShieldImageTransfer(this.serialPort));
-    
+	JPanel testPanel = new JPanel();
+	JLabel lbl = new JLabel("THIS IS A TEST STRING");
+	lbl.setVisible(true);
+	lbl.setBackground(Color.BLUE);
+	  
     
     centerPanel = new JPanel();
     
+    Dimension dim = textarea.getSize();
+    
+    System.out.println("The dimensions...." + dim);
+     
     centerPanel.setLayout(new CardLayout());
-	imageListPanel.setVisible(true);
-	  
+    
     centerPanel.setVisible(true);
     centerPanel.add(textarea, CODEEDITOR);
     centerPanel.add(imageListPanel, FILELIST);
-	
+	  centerPanel.add(lbl, TEST);  
+    
     CardLayout cl = (CardLayout) centerPanel.getLayout();
     cl.show(centerPanel, CODEEDITOR);
     
@@ -338,8 +346,11 @@ public class Editor extends JFrame
     editorSection.add(rightWing, BorderLayout.EAST);
     
     upper.add(editorSection);
-    
-    
+    String libraryDirectory = System.getProperty("user.dir") + File.separator + "hardware" + 
+           File.separator + "OpenHardware" + File.separator + "Modules";
+    gadgetPanel = new GadgetPanel("", this, libraryDirectory);
+    gadgetPanel.addActiveGadgetChangedEventListener(this);
+
     leftWing.setVisible(true);
       //upper.add(gadgetPanel);
     splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
@@ -568,6 +579,7 @@ public class Editor extends JFrame
 
       } else {
         handleNew2(true);
+        this.header.rebuild();
       }
     }
 
@@ -666,7 +678,31 @@ public class Editor extends JFrame
   protected JMenu buildFileMenu() {
     JMenuItem item;
     JMenu menu = new JMenu("File");
-
+    
+    final Editor editor = this;
+    
+    newGadgetMenuItem = newJMenuItem("New Gadget", 'C', true);
+    
+    newGadgetMenuItem.addActionListener(new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+            GadgetFactory fact = new GadgetFactory();
+            JFrame dialog;
+            dialog = new JFrame("Preferences");
+            dialog.setResizable(false);
+            File dflt = new File(Sketchbook.getSketchbookPath());
+            File file =
+                Base.selectFolder("Select new gadget location", dflt, dialog);
+            try {
+            	System.out.println("Creating the gadget!");
+				File newFile = fact.CreateGadgetFile(file.getName(), file.getPath().replace(file.getPath(), ""), new IModule[]{});
+				editor.gadgetPanel.loadGadget(newFile);
+			} catch (IOException e1) {
+				
+			}
+          }
+        });
+    menu.add(newGadgetMenuItem);
+    
     item = newJMenuItem("New", 'N');
     item.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
@@ -700,6 +736,8 @@ public class Editor extends JFrame
       });
     menu.add(item);
 
+    
+    
     /*exportAppItem = newJMenuItem("Export Application", 'E', true);
     exportAppItem.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
@@ -764,7 +802,11 @@ public class Editor extends JFrame
     item = newJMenuItem("Verify/Compile", 'R');
     item.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
-          handleRun(false);
+          try {
+			handleRun(false);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
         }
       });
     menu.add(item);
@@ -1432,6 +1474,17 @@ public class Editor extends JFrame
         });
     }
 
+	//switch to a code card
+	  try{
+		  CardLayout cl = (CardLayout)this.getLayout();
+		  cl.show(textarea, CODEEDITOR);
+	  }catch(Exception ex){
+		  
+	  }
+	  
+	  //set the card layout to give focus to the textarea
+	  CardLayout layout = (CardLayout)this.centerPanel.getLayout();
+	  layout.show(this.centerPanel, CODEEDITOR);
     // update the document object that's in use
     textarea.setDocument(code.document,
                          code.selectionStart, code.selectionStop,
@@ -1462,7 +1515,7 @@ public class Editor extends JFrame
   // ...................................................................
 
 
-  public void handleRun(final boolean present) {
+  public void handleRun(final boolean present) throws IOException {
       System.out.println("handling the run");
     doClose();
     running = true;
@@ -1494,11 +1547,8 @@ public class Editor extends JFrame
       }
     }
 
-    try {
-		this.sketch.save();
-	} catch (IOException e) {
-		e.printStackTrace();
-	}
+    this.saveSketches();
+    
     if(gadgetPanel.getActiveGadget() != null){
 	    if(gadgetPanel.getActiveModule().getRules() != null){
 	    	IMessage message = gadgetPanel.getActiveModule().getRules().getMessages()[0];
@@ -1660,6 +1710,12 @@ public class Editor extends JFrame
   public void handleSerial() {
     if (!debugging) {
       try {
+        ImageListPanel.killActiveTransfer();
+        try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
         serialPort = new Serial(true);
         this.gadgetPanel.setSerial(serialPort);
         console.clear();
@@ -1745,7 +1801,11 @@ public class Editor extends JFrame
     if(this.gadgetPanel.isActive()){
     	this.gadgetPanel.saveCurrentGadget();
     	Preferences.set("gadget.active", "true");
+    	try{
     	Preferences.set("last.active.gadget", ((IPackedFile)this.gadgetPanel.getActiveGadget()).getPackedFile().getPath());
+    	}catch(Exception ex){
+    		//there is no gadget
+    	}
     }
   }
 
@@ -1868,6 +1928,7 @@ public class Editor extends JFrame
           handleNewLibrary = false;
           checkModified(HANDLE_NEW);
         }});
+    this.header.paintComponents(this.getGraphics());
   }
 
 
@@ -1909,6 +1970,8 @@ public class Editor extends JFrame
       String pdePath =
         sketchbook.handleNew(noPrompt, handleNewShift, handleNewLibrary);
       if (pdePath != null) handleOpen2(pdePath);
+      
+      this.header.rebuild();
 
     } catch (IOException e) {
       // not sure why this would happen, but since there's no way to
@@ -1982,8 +2045,8 @@ public class Editor extends JFrame
       // auto-clean right away
       try {
         // don't clean if we're re-opening the same file
-        String oldPath = sketch.code[0].file.getCanonicalPath();
-        String newPath = new File(path).getCanonicalPath();
+        String oldPath = sketch.code[0].file.getPath();
+        String newPath = new File(path).getPath();
         if (!oldPath.equals(newPath)) {
           if (Base.calcFolderSize(sketch.folder) == 0) {
             Base.removeDir(sketch.folder);
@@ -1994,6 +2057,7 @@ public class Editor extends JFrame
       } catch (Exception e) { }   // oh well
     }
 
+    boolean isGadgetFile = false;
     try {
       // check to make sure that this .pde file is
       // in a folder of the same name
@@ -2003,7 +2067,6 @@ public class Editor extends JFrame
       String pdeName = parentName + ".pde";
       File altFile = new File(file.getParent(), pdeName);
 
-      boolean isGadgetFile = false;
       //System.out.println("path = " + file.getParent());
       //System.out.println("name = " + file.getName());
       //System.out.println("pname = " + parentName);
@@ -2017,25 +2080,28 @@ public class Editor extends JFrame
         path = altFile.getAbsolutePath();
         //System.out.println("found alt file in same folder");
 
-      } else if (!path.endsWith(".pde")) {
+      } else if (!path.endsWith(".pde") && !path.endsWith(".gdt")) {
         Base.showWarning("Bad file selected",
                             "Arduino can only open its own sketches\n" +
                             "and other files ending in .pde", null);
         return;
-      } else if (path.endsWith(".gadget")){
-    	  this.gadgetPanel.loadGadget(new File(path));
-    	  path = this.gadgetPanel.getActiveModule().getSketchFile().getPath();
-    	  this.loadGadget(this.gadgetPanel.getActiveGadget());
-    	  isGadgetFile = true;
-    	  this.lastActiveGadgetPath = path;
+      } else if (path.endsWith(".gdt")){
+    	  try{
+      	  	isGadgetFile = true;
+    		this.gadgetPanel.loadGadget(new File(path));
+    	  	path = this.gadgetPanel.getActiveModule().getSketchFile().getPath();
+    	  	this.loadGadget(this.gadgetPanel.getActiveGadget());
+    	  	this.lastActiveGadgetPath = path;
+    	  }catch(Exception ex){
+    	  }
       }else {
           try{
+        	  isGadgetFile = true;
         	  this.gadgetPanel.loadGadget(new File(path));
         	  IModule module = this.gadgetPanel.getActiveModule();
         	  File sketchFile = module.getSketchFile();
         	  path = sketchFile.getPath();
         	  this.loadGadget(this.gadgetPanel.getActiveGadget());
-        	  isGadgetFile = true;
         	  this.lastActiveGadgetPath = path;
         	  
           }catch(Exception ex){
@@ -2086,7 +2152,6 @@ public class Editor extends JFrame
         }
       }
       }
-
       //do one last check
       if(this.gadgetPanel.getActiveGadget() != null){
     	  for(int i = 0; i < gadgetPanel.getActiveGadget().getModules().length; i++){
@@ -2105,12 +2170,16 @@ public class Editor extends JFrame
     	  _frame.getJMenuBar().getMenu(3).getItem(4).setEnabled(false);
     	  leftExpandLabel.setText(">");    	  
       }else{
+    	  this.gadgetPanel.Unload(); 	//remove the gadget list and unload active module
     	  /* Use the Boards menu with a std .pde file */
     	  _frame.getJMenuBar().getMenu(3).getItem(4).setEnabled(true);
     	  gadgetPanel.hide();
       }
       
       sketch = new Sketch(this, path);
+      if(isGadgetFile){
+    	  System.out.println(path);
+      }
       // TODO re-enable this once export application works
       //exportAppItem.setEnabled(false);
       //exportAppItem.setEnabled(false && !sketch.isLibrary());
@@ -2121,7 +2190,9 @@ public class Editor extends JFrame
       }
 
     } catch (Exception e) {
-      error(e);
+    	if(!isGadgetFile){
+    		error(e);
+    	}
     }
   }
 
@@ -2155,8 +2226,8 @@ public class Editor extends JFrame
   public void handleSave2() {
     message("Saving...");
     try {
-
-	      if (sketch.save()) {
+    	  sketch.save();
+	      if (saveSketches()) {
 	        message("Done Saving.");
 	      } else {
 	        message(EMPTY);
@@ -2165,7 +2236,6 @@ public class Editor extends JFrame
     	if(this.gadgetPanel.getActiveGadget()!= null){
     	  this.gadgetPanel.saveCurrentGadget();
     	  System.out.println("saved gadget");
-    	 
     	}
       // rebuild sketch menu in case a save-as was forced
       // Disabling this for 0125, instead rebuild the menu inside
@@ -2195,6 +2265,11 @@ public class Editor extends JFrame
     SwingUtilities.invokeLater(new Runnable() {
         public void run() {
           message("Saving...");
+          try {
+			sketch.save();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
           try {
         	  if(gp.getActiveGadget() != null){
         			  FileDialog fd = new FileDialog(edit._frame,
@@ -2231,7 +2306,7 @@ public class Editor extends JFrame
 							gp.saveCurrentGadget();*/
 							File newFile = fact.copyGadget(gp.getActiveGadget(), newParentDir , newName);
 							//IGadget newGadget = fact.loadGadget(newFile, System.getProperty("java.io.tmpdir") + File.separator + newFile.getName());
-							gp.loadGadget(newFile.getPath());
+							gp.loadGadget(newFile);
 							gp.saveCurrentGadget();
 						}
 						
@@ -2273,12 +2348,8 @@ public class Editor extends JFrame
     final GadgetPanel panel = this.gadgetPanel;
     this.isExporting = true;
 
-    try {
-		this.sketch.save();
-	} catch (IOException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	}
+    this.saveSketches();
+    
     SwingUtilities.invokeLater(new Runnable() {
         public void run() {
           try {
@@ -2450,6 +2521,8 @@ public class Editor extends JFrame
    * Actually do the quit action.
    */
   protected void handleQuit2() {
+	handleSave2();
+	  
     storePreferences();
     Preferences.save();
 
@@ -2704,7 +2777,7 @@ public class Editor extends JFrame
     public void onActiveGadgetChanged(ActiveGadgetObject obj){
         this.gadgetPanel.saveCurrentGadget();
         if(gadgetPanel.getActiveModule() != null && gadgetPanel.getActiveGadget() != null){
-	        this.handleSave(true);
+	        //this.handleSave(true);
 	        File sketchFile = obj.getSketch();
 	        File boardFile = obj.getBoards();
 	        this.handleOpen(sketchFile.getPath());
@@ -2713,7 +2786,6 @@ public class Editor extends JFrame
 	        Preferences.set("board", board);
 	        Preferences.save();
 	        Preferences.init();
-	        this.buildToolsMenu();
 	        this.repaint();
         }else if(gadgetPanel.getActiveGadget() == null){
         	this.setVisible(true);
@@ -2855,7 +2927,7 @@ public class Editor extends JFrame
     	for(int i = 0; i < gadget.getModules().length; i++){
     		this.importModule(gadget.getModules()[i]);
     	}
-    	imageListPanel.setGadgetPanel(this.gadgetPanel);
+    	//imageListPanel.setGadgetPanel(this.gadgetPanel);
     }
     
     private void importModule(IModule module){
@@ -2870,21 +2942,31 @@ public class Editor extends JFrame
     	}
     }
     
-    public void setImageListVisable(){
-		/*this.imageListPanel.setGadgetPanel(this.gadgetPanel);
-    	this.imageListPanel.setVisible(true);
+    public void setImageListVisable(IModule module){
+    	this.imageListPanel.setModule(module);
     	//this.textarea.setVisible(true);
-		System.out.println("Showing : " + FILELIST);
     	CardLayout cl = ((CardLayout)this.centerPanel.getLayout());
-    	cl.show(this.centerPanel, FILELIST);
-		this.show();
-		*/
-		imageListPanel.setVisible(true);
-		this.textarea.setVisible(true);
-		System.out.println(this.gadgetPanel);
-		this.imageListPanel.setGadgetPanel(this.gadgetPanel);
-		CardLayout cl = ((CardLayout)this.centerPanel.getLayout());
-		cl.show(this.centerPanel, FILELIST);
+    	cl.show(centerPanel, FILELIST);
     }
+    
+    private boolean saveSketches(){
+    	boolean retVal = true;
+    	int correctSketch = sketch.currentIndex;
+    	for(int i = 0; i < sketch.code.length; i++){
+    		try {
+    			sketch.setCurrent(i);
+				sketch.save();
+				if(!retVal){
+				   retVal = true;
+				}
+			} catch (IOException e) {
+				retVal = false;
+				e.printStackTrace();
+			}
+    	}
+    	sketch.setCurrent(correctSketch);
+    	return retVal;
+    }
+    
 }
 

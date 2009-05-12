@@ -41,7 +41,6 @@ import com.oroinc.text.regex.*;
  */
 public class Sketch {
   static File tempBuildFolder;
-
   Editor editor;
 
   /**
@@ -534,6 +533,7 @@ public class Sketch {
       }
       SketchCode newCode = new SketchCode(newName, newFile, newFlavor);
       insertCode(newCode);
+      editor.header.paintComponents(editor.header.getGraphics());
     }
 
     // sort the entries

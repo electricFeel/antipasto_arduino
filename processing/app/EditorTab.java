@@ -19,7 +19,14 @@ import javax.swing.JPanel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import antipasto.Interfaces.*;
+
 public class EditorTab extends JComponent implements DocumentListener, MouseListener{
+
+	public static final String DATA = "DATATAB";
+	public static final String CODE = "CODETAB";
+	
+	
 	RoundRectangle2D roundRect;
 	Rectangle2D rect;
 	
@@ -35,6 +42,10 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 	Object obj;
 	
 	int updates = 0;
+	
+	File[] files;
+	
+	private String internalType = "";
 	
 	public EditorTab(Color color, String title, Object valueHolder, Editor editor){
 		//We need to create a rounded
@@ -54,9 +65,15 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 		if(obj instanceof SketchCode){
 			//SketchCode instance
 			SketchCode skc = (SketchCode)obj;
-			skc.document.addDocumentListener(this);
-		}else if(obj instanceof File[]){
+			if(skc.document != null){
+				skc.document.addDocumentListener(this);
+			}
+			this.internalType = CODE;
+		}else if(obj instanceof IModule){
 			//List of files isntance
+			if(((IModule)obj).getData() != null){
+				this.internalType = DATA;
+			}
 		}
 		
 		this.addMouseListener(this);
@@ -73,7 +90,7 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 				printTxt = printTxt + "*";
 			}
 			
-			double textWidth = (metrics.getStringBounds(txt, g).getWidth() / 2) * 1.2;
+		 double textWidth = (metrics.getStringBounds(txt, g).getWidth() / 2) * 1.7;
 			roundRect = new RoundRectangle2D.Double(0, 0, textWidth, 25 , 10, 10);
 			rect = new Rectangle2D.Double(0,10,textWidth, 15);
 			
@@ -90,6 +107,9 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 
 	public void changedUpdate(DocumentEvent arg0) {
 		this.isUpdated = true;
+		if(arg0.getLength() == 0){
+			this.isUpdated = false;
+		}
 		System.out.println("Changed Update");
 		this.repaint();
 	}
@@ -127,13 +147,9 @@ public class EditorTab extends JComponent implements DocumentListener, MouseList
 		if(this.obj instanceof SketchCode){
 			//we load the sketch code and make the editor window visible
 			editor.setCode((SketchCode)obj);
-		}else if(this.obj instanceof File[]){
+		}else if(this.obj instanceof IModule){
 			//we load the File[] and make the list view window visible
-			editor.setImageListVisable();
-			System.out.println("this is a file list");
-		}else{
-			//omg what do we do!?
-			System.out.println("I don't know what this it");
+			editor.setImageListVisable((IModule)this.obj);
 		}
 	}
 

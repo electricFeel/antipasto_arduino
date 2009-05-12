@@ -1,23 +1,20 @@
 package antipasto.GUI.GadgetListView;
 
-import java.awt.dnd.DragGestureEvent;
-import java.awt.dnd.DragGestureListener;
-import java.awt.dnd.DragSourceDragEvent;
-import java.awt.dnd.DragSourceDropEvent;
-import java.awt.dnd.DragSourceEvent;
-import java.awt.dnd.DragSourceListener;
-import java.awt.dnd.DropTargetDragEvent;
-import java.awt.dnd.DropTargetDropEvent;
-import java.awt.dnd.DropTargetEvent;
-import java.awt.dnd.DropTargetListener;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.color.ColorSpace;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.RoundRectangle2D;
 import java.io.*;
 
 import javax.swing.*;
 import javax.swing.event.EventListenerList;
-import javax.swing.event.ListDataListener;
-import javax.swing.event.ListDataEvent;
 
 import antipasto.GadgetFactory;
 import antipasto.ModuleFactory;
@@ -29,16 +26,17 @@ import antipasto.Interfaces.IModule;
 import antipasto.Interfaces.IPackedFile;
 import antipasto.Interfaces.ITemporary;
 
-import java.io.*;
-import java.util.Arrays;
 
-public class GadgetList extends JList implements IGadgetWindowTransferFileEventListener, MouseListener{
+public class GadgetList extends JList implements IGadgetWindowTransferFileEventListener/*, MouseListener*/{
 
     IGadget gadget;
     JList jList;
     GadgetCollection _collection;
     private String moduleDirectory;
     private boolean mouseIsOver = false;
+    private Rectangle bounding;
+    
+    
 
     private EventListenerList activeGadgetChangedEventList = new EventListenerList();
     private EventListenerList activeSketchChangedEventList = new EventListenerList();
@@ -47,13 +45,13 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
         super();
         this.loadGadget(gadget);
         this.moduleDirectory = gadgetDirectory;
-        this.addMouseListener(this);
+        init();
     }
 
     public GadgetList(String gajDirectory){
         super();
         this.moduleDirectory = gajDirectory;
-        this.addMouseListener(this);
+        init();
     }
 
     public void loadGadget(IGadget gaj){
@@ -61,13 +59,12 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
         gadget = gaj;
         _collection = new GadgetCollection(gaj);
         
-        GadgetWindowTransferHandler transferHandler = new GadgetWindowTransferHandler();
-        transferHandler.addTransferFileListener(this);
         this.setModel(new GadgetListModel(_collection));
         this.setCellRenderer(new GadgetCellRenderer());
-        this.setTransferHandler(transferHandler);
+        this.setSelectedIndex(0);
+        this.setDragEnabled(false);
     }
-
+    
     public void addGadgetToCurrentSketchBook(File f) {
         if(f.getName().endsWith(".module")){
             ModuleFactory fact = new ModuleFactory();
@@ -98,7 +95,7 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
 
         if (f.getName().endsWith(IModule.moduleExtension)) {
             this.addGadgetToCurrentSketchBook(f);
-        } else if (f.getName().endsWith(".pde") || f.getName().endsWith(".gadget")){
+        } else if (f.getName().endsWith(".pde") || f.getName().endsWith(".gdt")){
             this.loadGadget(f);
         }
     }
@@ -109,36 +106,33 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
 
     public void saveCurrentGadget(){
         GadgetFactory factory = new GadgetFactory();
-        try{
-            //factory.writeSketchBookToFile(_book, sketchBookDirectory);
-            String originalDirectory = ((IPackedFile)gadget).getPackedFile().getPath();
-            String bookFileName = ((IPackedFile)gadget).getPackedFile().getName();
-            antipasto.Interfaces.ITemporary temp = (antipasto.Interfaces.ITemporary)gadget;
-            IModule[] newGadgets = new IModule[gadget.getModules().length];
-            for(int i = 0; i < gadget.getModules().length; i++){
-                IModule curGadget = gadget.getModules()[i];
-                if(curGadget instanceof IPackedFile && curGadget instanceof ITemporary){
-                    File gadgetDirectory = new File(((ITemporary)curGadget).getTempDirectory());
-                    File packedFile = ((IPackedFile)curGadget).getPackedFile();
+        //factory.writeSketchBookToFile(_book, sketchBookDirectory);
+		String originalDirectory = ((IPackedFile)gadget).getPackedFile().getPath();
+		String bookFileName = ((IPackedFile)gadget).getPackedFile().getName();
+		System.out.println("Saving gadget called : " + bookFileName);
+		antipasto.Interfaces.ITemporary temp = (antipasto.Interfaces.ITemporary)gadget;
+		IModule[] newGadgets = new IModule[gadget.getModules().length];
+		for(int i = 0; i < gadget.getModules().length; i++){
+		    IModule curGadget = gadget.getModules()[i];
+		    if(curGadget instanceof IPackedFile && curGadget instanceof ITemporary){
+		        File gadgetDirectory = new File(((ITemporary)curGadget).getTempDirectory());
+		        File packedFile = ((IPackedFile)curGadget).getPackedFile();
 
-                    ModuleFactory fact = new ModuleFactory();
-                    try{
-                    	fact.WriteModuleToFile(curGadget, packedFile.getPath().substring(0,
-                    			packedFile.getPath().length() - packedFile.getName().length()));
-                    }catch(Exception ex){
-                        ex.printStackTrace();
-                    }
-                    newGadgets[i] = curGadget;
-                }
-            }
-            gadget.setModule(newGadgets);
-            File tempDirectory = new File(temp.getTempDirectory());
-            int endIndex = originalDirectory.length() - bookFileName.length();
-            originalDirectory = originalDirectory.substring(0, endIndex);
-            factory.writeGadgetToFile(gadget, originalDirectory);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
+		        ModuleFactory fact = new ModuleFactory();
+		        try{
+		        	fact.WriteModuleToFile(curGadget, packedFile.getPath().substring(0,
+		        			packedFile.getPath().length() - packedFile.getName().length()));
+		        }catch(Exception ex){
+		            ex.printStackTrace();
+		        }
+		        newGadgets[i] = curGadget;
+		    }
+		}
+		gadget.setModule(newGadgets);
+		File tempDirectory = new File(temp.getTempDirectory());
+		int endIndex = originalDirectory.length() - bookFileName.length();
+		originalDirectory = originalDirectory.substring(0, endIndex);
+		factory.writeGadgetToFile(gadget, ((IPackedFile)gadget).getPackedFile());
     }
 
     public String getSketchBookDirectory() {
@@ -170,8 +164,6 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
 
 	public void doImportDragDrop(IModule module){
 		//TODO: Do this later!
-		System.out.println("Drag drop not implemented just yet.....I'm only on programmer!");
-		/*System.out.println("Attempting import");
 		if(module instanceof IPackedFile){
 			IPackedFile file = (IPackedFile)module;
 			String name = module.getName();
@@ -211,7 +203,7 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
 			this.loadGadget(gadget);
 		}else{
 			System.out.println("Error trying to import the module...");
-		}*/
+		}
 	}
 	
 	private boolean checkName(IGadget gadget, String name){
@@ -223,34 +215,61 @@ public class GadgetList extends JList implements IGadgetWindowTransferFileEventL
 		}
 		return false;
 	}
+	
+	
+	private void init(){
+		final GadgetList gList = this;
+		this.addMouseMotionListener(new MouseMotionListener(){
+			public void mouseMoved(MouseEvent e) {
+				Point p = new Point(e.getX(),e.getY());
+				int index = gList.locationToIndex(p);
+				if(index >= 0){
+					gList.bounding = (Rectangle)gList.getCellBounds(index, index);
+					gList.mouseIsOver = true;
+					gList.repaint();
+				}else{
+					gList.mouseIsOver = false;
+					gList.repaint();
+				}
+			}
 
-	//Todo: clean up all of this mouse listener crap....
-	public void mouseClicked(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	public void mouseEntered(MouseEvent arg0) {
-		//System.out.println("Mouse enetered");
-		this.mouseIsOver = true;
-		//int x = arg0.getLocationOnScreen().x;
-		//int y = arg0.getLocationOnScreen().y;
-		//if(this.bounds().inside(x, y)){
+			public void mouseDragged(MouseEvent e) {
+			}
 			
-		//}
-	}
+		});
+		this.addMouseListener(new MouseListener(){
 
-	public void mouseExited(MouseEvent arg0) {
-		//System.out.println("Mouse exited");
-		this.mouseIsOver = false;
-	}
+			public void mouseClicked(MouseEvent e) {
+			}
 
-	public void mousePressed(MouseEvent arg0) {
-		
-	}
+			public void mouseEntered(MouseEvent e) {
+			}
 
-	public void mouseReleased(MouseEvent arg0) {
+			public void mouseExited(MouseEvent e) {
+				mouseIsOver = false;
+				repaint();
+			}
+
+			public void mousePressed(MouseEvent e) {
+			}
+
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+		});
 	}
+	
+	public void paint(Graphics g){
+		super.paint(g);
+		Graphics2D g2d = (Graphics2D)g;
+		if(this.mouseIsOver){
+			RoundRectangle2D outer = new RoundRectangle2D.Double((double)this.bounding.getX(), (double)this.bounding.getY(), (double)this.bounding.getWidth(), (double)this.bounding.getHeight(), 10, 10);
+			Rectangle2D inner = new Rectangle2D.Double((double)this.bounding.getX() + 5, (double)this.bounding.getY() + 5, (double)this.bounding.getWidth()- 10, (double)this.bounding.getHeight() - 10);//, 10, 10);
+			g2d.setColor(Color.gray);
+			g2d.draw(outer);
+		}
+	}
+	
 	//This code was copied and pasted directly from
 	//http://www.codeandcoffee.com/2006/08/22/quick-snippets-copy-a-file-with-java/
 	public static void copyFile(File fSource, File fDest) throws IOException

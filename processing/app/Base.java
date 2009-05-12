@@ -61,7 +61,7 @@ import processing.core.*;
 public class Base {
   static final String DIST_NAME = "Antipasto Arduino";
   static final int VERSION = 13;
-  static final String VERSION_NAME = "0.8.3";
+  static final String VERSION_NAME = "0.8.7";
 
   /**
    * Path of filename opened on the command line,
@@ -186,11 +186,11 @@ public class Base {
     	editor.gadgetPanel.setVisible(true);
     }
       
-    TouchShieldImageTransfer transfer = new TouchShieldImageTransfer(editor.serialPort);
+ //   FlashTransfer transfer = new FlashTransfer(editor.serialPort, "FlashFileSystem 0.1.0");
   
-    ImageListPanel imageListPanel = new ImageListPanel(editor.gadgetPanel, transfer);
-    imageListPanel.setLocation(editor.getX() + editor.getWidth() + 3, editor.getY());
-    imageListPanel.setSize(editor.gadgetPanel.getSize());
+ //   ImageListPanel imageListPanel = new ImageListPanel(editor.gadgetPanel, transfer);
+ //   imageListPanel.setLocation(editor.getX() + editor.getWidth() + 3, editor.getY());
+ //   imageListPanel.setSize(editor.gadgetPanel.getSize());
   
     if (Preferences.getBoolean("update.check")) {
       new UpdateCheck(editor);

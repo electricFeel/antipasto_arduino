@@ -22,6 +22,14 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 
+/**
+ * @author omarayub
+ *
+ */
+/**
+ * @author omarayub
+ *
+ */
 public class GadgetFactory {
     public Element createGadgetXML(IGadget gadget) throws Exception {
         Element root = null;
@@ -56,7 +64,7 @@ public class GadgetFactory {
     }
 
     public IGadget loadGadget(File gadgetFile, String outputDirectory) {
-        if(gadgetFile.getName().endsWith(".pde") || gadgetFile.getName().endsWith(".gadget"))
+        if(gadgetFile.getName().endsWith(".pde") || gadgetFile.getName().endsWith(".gdt"))
         {
             File[] unpackedFiles = UnPacker.UnPack(gadgetFile, new File(outputDirectory));
             File configFile = findFileByName("config.xml", unpackedFiles);
@@ -102,14 +110,17 @@ public class GadgetFactory {
     	return this.CreateGadgetFile(name, outputDirectory, newGadgetModules);
     }
 
-    public File writeGadgetToFile(IGadget gadget, String outputDir) throws IOException {
-        File outDir = new File(outputDir);
+    /*
+     * Writes gadget back to the original file
+     * */
+    public File writeGadgetToFile(IGadget gadget, File originalFile){
+        File outDir = new File(originalFile.getPath());
         if(!outDir.exists())
         {
             outDir.mkdir();
         }
 
-        File tmpDir = new File(System.getProperty("java.io.tmpdir") + File.separator + gadget.getName() + ".tmp");
+        File tmpDir = Base.createTempFolder(originalFile.getName());
         tmpDir.mkdir();
 
         ModuleFactory fact = new ModuleFactory();
@@ -131,7 +142,57 @@ public class GadgetFactory {
         }
 
 
-        File returnFile = Packer.packageFile(outDir.getPath() + File.separator + gadget.getName() + ".pde"
+        File returnFile = null;
+		try {
+			returnFile = Packer.packageFile(originalFile.getPath()
+			                                    , tmpDir.listFiles());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+        File[] tmpFiles = tmpDir.listFiles();
+        for(int i =0; i < tmpFiles.length; i++)
+        {
+            tmpFiles[i].delete();
+        }  
+
+        tmpDir.delete();
+        return returnFile;
+    }
+    
+    /*
+     * Outputs a gadget to the specified directory
+     * */
+    public File writeGadgetToFile(IGadget gadget, String outputDir) throws IOException {
+        File outDir = new File(outputDir);
+        if(!outDir.exists())
+        {
+            outDir.mkdir();
+        }
+
+        File tmpDir = Base.createTempFolder(gadget.getName());
+        tmpDir.mkdir();
+
+        ModuleFactory fact = new ModuleFactory();
+
+        for(int i=0; i < gadget.getModules().length; i++)
+        {
+            try {
+            	//NOTE: We may need to add a hook for the module rules
+                fact.WriteModuleToFile(gadget.getModules()[i], tmpDir.getPath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            XMLWriter.Writer(gadget.getConfiguration(), "config.xml", tmpDir.getPath());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        File returnFile = Packer.packageFile(outDir.getPath() + File.separator + gadget.getName() + ".gdt"
                                             , tmpDir.listFiles());
 
         File[] tmpFiles = tmpDir.listFiles();
@@ -200,8 +261,6 @@ public class GadgetFactory {
                         File moduleFile = this.findFileByName(moduleName + IModule.moduleExtension , files);
 
                         try {
-                            System.out.println("Module being loaded : " + outputDirectory + File.separator + moduleName);
-                            System.out.println("Module location : " + moduleFile.getPath());
                             gadgets.add(gadgetFactory.loadModule(moduleFile,outputDirectory + File.separator + moduleName , true));
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -239,6 +298,12 @@ public class GadgetFactory {
         return book;
     }
 
+    
+    /**
+     * Gets the name of the module from the element 
+     * @param gadget
+     * @return
+     */
     private String getModuleElementName(Element gadget)
     {
         for(int i = 0; i < gadget.getChildNodes().getLength(); i++)
@@ -251,6 +316,13 @@ public class GadgetFactory {
         return "";
     }
 
+    
+    /**
+     * Gets the first element of the module configuration file
+     * @param xmlConfig
+     * @return Xml element
+     * @throws Exception
+     */
     private Element getFirstElementOfModuleFile(File xmlConfig) throws Exception {
         try {
             DocumentBuilderFactory docFact = DocumentBuilderFactory.newInstance();
@@ -266,6 +338,14 @@ public class GadgetFactory {
         throw new Exception("Error getting the base element of the project");
     }
 
+    /**
+     * Adds a module to the gadget by copying the original module file to the currently expanded
+     * gadget directory
+     * @param gadget
+     * @param module
+     * @return the new gadget
+     * @throws Exception
+     */
     public IGadget AddModuleToGadget(IGadget gadget, IModule module) throws Exception {
         if(gadget instanceof IGadget){
             if(module instanceof Module){
@@ -275,21 +355,30 @@ public class GadgetFactory {
                         hasAlreadyCount ++;
                     }
                 }
-
+                
+                //Count the number of modules and increment the name
+                String moduleName = module.getName();
                 if(hasAlreadyCount > 1){
-                    module.setName(module.getName() + "(" + hasAlreadyCount + ")");
+                    moduleName = module.getName() + "(" + hasAlreadyCount + ")";
                 }
+                //copy the module to the base directory of the gadget
                 //get the file copy it to the book directory, unpack it to a subfolder
-                Gadget mBook = (Gadget) gadget;
-                Module mGadget = (Module)module;
-                File gadgetFile = mGadget.getPackedFile();
-                File outDirectory = new File(mBook.getTempDirectory() + File.separator + module.getName());
-
+                Gadget gadgetBase = (Gadget) gadget;
+                Module moduleOriginal = (Module)module;
+                File moduleFileOriginal = moduleOriginal.getPackedFile();
+                File outDirectory = new File(gadgetBase.getTempDirectory() + File.separator + module.getName());
+                
+                if(!outDirectory.exists()){
+                	outDirectory.mkdir();
+                }
+                
+                File moduleFileNew = new File(outDirectory + File.separator + moduleName + ".module");
+                Base.copyFile(moduleFileOriginal, moduleFileNew);
+                
                 ModuleFactory factory = new ModuleFactory();
                 try {
-                    IModule copiedGadget = factory.loadModule(gadgetFile, outDirectory.getPath(), true);
-                    copy(gadgetFile, new File(mBook.getTempDirectory()));
-
+                    IModule copiedGadget = factory.loadModule(moduleFileNew, outDirectory.getPath(), true);
+                    
                     IModule[] oldGadgets = gadget.getModules();
                     IModule[] newGadgets = new IModule[oldGadgets.length + 1];
 
@@ -297,8 +386,10 @@ public class GadgetFactory {
                     {
                         newGadgets[i] = oldGadgets[i];
                     }
+                    
                     newGadgets[newGadgets.length - 1] = copiedGadget;
                     gadget.setModule(newGadgets);
+                    
                     return gadget;
                 } catch (Exception e) {
                     System.out.println("Error adding gadget to sketch");
@@ -308,19 +399,4 @@ public class GadgetFactory {
         }
         throw new Exception("Error creating gadget");
     }
-
-    private void copy(File src, File dir) throws IOException {
-           File dst = new File(dir.getPath() + File.separator + src.getName());
-           InputStream in = new FileInputStream(src);
-           OutputStream out = new FileOutputStream(dst);
-
-           // Transfer bytes from in to out
-           byte[] buf = new byte[1024];
-           int len;
-           while ((len = in.read(buf)) > 0) {
-               out.write(buf, 0, len);
-           }
-           in.close();
-           out.close();
-       }
 }

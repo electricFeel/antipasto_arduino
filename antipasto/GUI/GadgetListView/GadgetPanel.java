@@ -72,8 +72,13 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
     private int cachedHeight = 425;
     private int cachedWidth = 300;
 
+    public boolean gadgetIsLoaded = false;
+    
+    private JFrame parentFrame;
+    
     public GadgetPanel(String sketchBookDirectory, JFrame frame, String libraryDirectory) {
     	super(frame, false);
+    	parentFrame = frame;
         this.addMouseListener(new ModuleMouseAdapter());
         this.setUndecorated(true);
         frame.addWindowListener(this);
@@ -81,50 +86,46 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
         this.init();
     }
     
-    public void loadGadget(String gadget){
-    	this.loadGadget(new File(gadget));
+    private void reinit(){
+    	
+		/* Remove the current panel GUI elements, because 
+		 * we're going to update them....
+		 */
+		scrollPanel.setVisible(false);
+    	this.remove(scrollPanel);
+		this.remove(messagePanel);
+		this.remove(gadgetDescPanel);
+		
+		/* Setup the new panels */
+
+        
+        scrollPanel = new JScrollPane();
+        scrollPanel.setPreferredSize(new Dimension(300, 300));
+        scrollPanel.setSize(new Dimension(300, 300));
+        
+        /* Describe what's going on here to the user and 
+         * display the description in the panel labels.
+         */
+        gadgetDescLabel.setText(" No Gadget " );
+        messageLabel.setText(" No Gadget Loaded");
+        
+        /* Add all the updated GUI elements back to the panel */
+        box.add(gadgetDescPanel);
+        box.add(scrollPanel);
+        box.add(messagePanel);
+        scrollPanel.setVisible(true);
+        
+        //Save this for later!		
+    }
+    
+    public void Unload(){
+    	this.reinit();
+    	this.activeModule = null;
+    	this.gadgetIsLoaded = false;
     }
     
     private void init(){
     	this.getContentPane().setLayout(new BorderLayout());
-    	//JPanel top = new JPanel();
-        //top.setBackground(new Color(0x04, 0x4F, 0x6F));
-    	//this.getContentPane().add(top, BorderLayout.NORTH);
-    	//top.setSize(new Dimension(this.getWidth(), 15));
-        //top.setLayout(new FlowLayout());
-    	//messagePanel.setLayout(new FlowLayout());
-        
-        /*
-        try {
-        	ImageIcon upperLeft = new ImageIcon("..\\lib\\upperleftgadget.png");
-    		upperLeft.setImage(Base.getImage("..\\lib\\upperleftgadget.png", this));
-    		JLabel upperImageLabel = new JLabel(upperLeft);
-			top.add(upperImageLabel);
-			upperImageLabel.setVisible(true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}*/
-
-        /*
-    	JPanel bottom = new JPanel();
-    	bottom.setBackground(new Color(0x04, 0x4F, 0x6F));
-    	this.getContentPane().add(bottom, BorderLayout.SOUTH);
-    	bottom.setSize(new Dimension(this.getWidth(), 15));
-    	bottom.setLayout(new FlowLayout());
-        */ 
-
-        /*
-    	ImageIcon lowerRight = new ImageIcon();
-    	try {
-    		ImageIcon lowerLeftImage = new ImageIcon("\\lib\\lowerleftgadget.png");
-			lowerLeftImage.setImage(Base.getImage("..\\lib\\lowerleftgadget.png", this));
-    		JLabel lowerImageLabel = new JLabel(lowerLeftImage);
-			top.add(lowerImageLabel);
-			lowerImageLabel.setVisible(true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-        */
         
 		this.setBackground(new Color(0x04, 0x4F, 0x6F));
 		
@@ -181,35 +182,11 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
         box.add(messagePanel);
 
         this.getContentPane().add(box, BorderLayout.NORTH);
-        
-        //JPanel panel = new JPanel();
-        //panel.setLayout(new FlowLayout());
-        //panel.setSize(200, 100);
-
-        /*button = new JButton("Add Gadget");
-        button.addMouseListener(new AddGadgetMenu(menu, button));
-
-        panel.add(button);
-        button = new JButton("Remove Gadget");
-        panel.add(button);
-        */
-        //this.getContentPane().add(panel, BorderLayout.PAGE_START);
-        //panel.setVisible(true);
-
-        //this.setSize(this.cachedWidth, this.cachedHeight);
-        
-        //libPanel.setVisible(true);
-        //scrollPanel.setVisible(true);
-        //libDescPanel.setVisible(true);
-        //scrollDescPanel.setVisible(true);
-        //top.setVisible(true);
-        //bottom.setVisible(true);
-        
-        //this.setVisible(true);
     }
     
     public void loadGadget(File gadget){
     	if(gadget  != null){	
+    		
     		GadgetFactory fact = skbFact;
     		
     		/* Remove the current panel GUI elements, because 
@@ -221,13 +198,16 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
     		this.remove(gadgetDescPanel);
     		
     		/* Setup the new panels */
-	    	String dir = System.getProperty("java.io.tmpdir") + gadget.getName();
+	    	String dir = Base.createTempFolder(gadget.getName()).getPath();
     		IGadget book = fact.loadGadget(gadget, dir);
 
     		this._gadget = book;
     		 
 	        list = new GadgetList(book, gadget.getParent());
 	        list.loadGadget(_gadget);
+	        list.setSelectionMode(DefaultListSelectionModel.SINGLE_SELECTION);
+	        
+	        libPanel.setGadgetList(list);
 	        
 	        scrollPanel = new JScrollPane((JList) list);
 	        scrollPanel.setPreferredSize(new Dimension(300, 300));
@@ -247,9 +227,20 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
             
     	    list.addSketchChangingeListener(this);
     	    list.addListSelectionListener(this);
-
-    		 this.activeModule = this.getActiveModule();
-	    	//Save this for later!		
+    	    
+    		this.list.setSelectedIndex(0);
+    		if(list._collection._gadgets.size() > 0){
+	    		this.activeModule = (IModule) list.getSelectedValue();
+	            this.onActiveGadgetChange(new ActiveGadgetObject(this,
+	                    this.activeModule.getSketchFile(),
+	                    this.activeModule.getBoardsFile()));
+    		}else{
+    			Editor editor = (Editor) this.parentFrame;
+    			editor.textarea.setVisible(false);
+    		}
+    		this.gadgetIsLoaded = true;
+	    	//Save this for later!
+    		
     	}else{
     		this.setVisible(false);
     		this.hide();				//gotta upgrade the java version....
@@ -297,6 +288,8 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
                             ((IActiveGadgetChangedEventListener)listeners[i+1]).onActiveGadgetChanged(evObj);
                         }
                     }
+                    Editor editor = (Editor) parentFrame;
+                    editor.textarea.setVisible(true);
     }
 
     public void addSketchBookChangedEventListener(IActiveSketchChangingListener listener){
@@ -380,7 +373,8 @@ public class GadgetPanel extends JDialog implements ListSelectionListener, IActi
 		//int width = 300;
         //this.setSize(width, editor.textarea.getHeight());
 		//this.setSize(this.cachedWidth, this.cachedHeight);
-        this.setLocation(editor.getX() - this.getWidth(), editor.textarea.getLocationOnScreen().y);	
+		//System.out.println(editor.getLocationOnScreen().getY() - editor.centerPanel.getLocationOnScreen().getY());
+        this.setLocation(editor.getX() - this.getWidth(), editor.centerPanel.getLocationOnScreen().y);	
 	}
 
 	public void componentResized(ComponentEvent arg0) {
